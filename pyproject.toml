@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "friendly-meme"
+version = "0.1.0"
+description = ""
+authors = ["Mark <74201924+Markushik@users.noreply.github.com>"]
+readme = "README.md"
+packages = [{include = "friendly_meme"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+nats-py = "^2.2.0"
+aiogram = "^3.0.0b7"
+loguru = "^0.6.0"
+dynaconf = "^3.1.11"
+ormsgpack = "^1.2.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
