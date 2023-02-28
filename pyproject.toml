@@ -13,6 +13,7 @@ aiogram = "^3.0.0b7"
 loguru = "^0.6.0"
 dynaconf = "^3.1.11"
 ormsgpack = "^1.2.5"
+msgpack = "^1.0.4"
 
 
 [build-system]

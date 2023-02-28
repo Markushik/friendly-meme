@@ -9,7 +9,7 @@ from nats.js.errors import NotFoundError
 from nats.js.kv import KeyValue
 
 
-class Nats_Storage(BaseStorage):
+class NatsStorage(BaseStorage):
     def __init__(self, nc: Client, kv_states: KeyValue, kv_data: KeyValue):
         super().__init__()
         self.nc = nc

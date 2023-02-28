@@ -6,13 +6,11 @@ import asyncio
 
 import nats
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
 from loguru import logger
 
-from tgbot.fsm.entry import Nats_Storage
-from handlers import (client)
-
 from config import settings
+from handlers import client
+from tgbot.fsm.entry import NatsStorage
 
 
 async def main() -> None:
@@ -25,20 +23,19 @@ async def main() -> None:
 
     nc = await nats.connect()
     js = nc.jetstream()
+
     kv_states = await js.key_value('fsm_states_aiogram')
     kv_data = await js.key_value('fsm_data_aiogram')
 
-    storage_url = MemoryStorage()
-
     bot = Bot(token=settings.API_TOKEN, parse_mode="HTML")
-    disp = Dispatcher(storage=Nats_Storage(nc, kv_states, kv_data))
+    disp = Dispatcher(storage=NatsStorage(nc, kv_states, kv_data))
 
     disp.include_router(client.router)
     # disp.include_router(errors.router)
 
     try:
         # await set_commands(bot)
-        await disp.start_polling(bot, allowed_updates=disp.resolve_used_update_types())
+        await disp.start_polling(bot, allowed_updates=disp.resolve_used_update_types(), nc=nc, js=js)
     finally:
         await disp.storage.close()
         await bot.session.close()
@@ -49,3 +46,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (SystemExit, KeyboardInterrupt, ConnectionRefusedError):
         logger.warning("SHUTDOWN BOT")
+
