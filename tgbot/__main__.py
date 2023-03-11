@@ -5,7 +5,9 @@ The main file responsible for launching the bot
 import asyncio
 
 import nats
-from aiogram import Bot, Dispatcher
+from aiogram import Bot
+from aiogram import Dispatcher
+from aiogram.types import BotCommand, BotCommandScopeDefault
 from loguru import logger
 from sqlalchemy import URL
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -15,6 +17,15 @@ from handlers import client
 from tgbot.database.base import BaseModel
 from tgbot.database.engine import proceed_schemas, get_session_maker
 from tgbot.fsm.entry import NatsStorage
+from tgbot.handlers import errors
+
+
+async def set_commands(bot: Bot):
+    commands = [
+        BotCommand(command="/start", description="Запустить бота"),
+        BotCommand(command="/exchange", description="Актуальный курс юаня")
+    ]
+    await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
 
 
 async def main() -> None:
@@ -41,15 +52,17 @@ async def main() -> None:
     disp = Dispatcher(storage=NatsStorage(nats_conn, kv_states, kv_data))
 
     disp.include_router(client.router)
-    # disp.include_router(errors.router)
+    disp.include_router(errors.router)
 
     async_engine = create_async_engine(database_url)
     session_maker = get_session_maker(async_engine)
 
     try:
-        # await set_commands(bot)
+        await set_commands(bot)
         await proceed_schemas(async_engine, BaseModel.metadata)
-        await disp.start_polling(bot, session_maker=session_maker, allowed_updates=disp.resolve_used_update_types(),
+        await disp.start_polling(bot,
+                                 allowed_updates=disp.resolve_used_update_types(),
+                                 session_maker=session_maker,
                                  nats_conn=nats_conn,
                                  jetstream=jetstream)
     finally:

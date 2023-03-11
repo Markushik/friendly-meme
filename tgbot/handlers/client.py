@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from tgbot.constants import CHAT_ID, ADM_ID
 from tgbot.database import Currency
-from tgbot.keyboards.inline import get_confirm_or_reject_keyboard
+from tgbot.keyboards.inline import get_confirm_or_reject_keyboard, get_refresh_button
 from tgbot.states.user import UserForm
 
 router = Router()
@@ -80,7 +80,6 @@ async def check_currency(number: int) -> bool:
 async def exchange_rates(message: Message, command: CommandObject, session_maker):
     if message.from_user.id == ADM_ID and command.args:
         await message.answer("<b>✅ Одобрено:</b> Курс успешно изменен")
-
         async with session_maker() as session:
             async with session.begin():
                 await session.merge(
@@ -102,4 +101,8 @@ async def get_exchange(message: Message, session_maker):
             data1 = data.first()
             await session.commit()
 
-    await message.answer(f"Текущий курс: {data1.Currency.yuan}")
+    await message.answer(
+        f"<b>💸 Текущий курс:</b>\n "
+        f"<code>{int(data1.Currency.yuan)} ¥(юань)</code> <b>=</b> <code>1 ₽(руб.)</code>",
+        reply_markup=get_refresh_button()
+    )

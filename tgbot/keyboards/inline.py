@@ -11,3 +11,12 @@ def get_confirm_or_reject_keyboard():
     )
 
     return menu_builder.as_markup()
+
+
+def get_refresh_button():
+    builder = InlineKeyboardBuilder()
+
+    builder.button(text="🔄 Обновить", callback_data="refresh_data")
+
+    builder.adjust(1)
+    return builder.as_markup()
