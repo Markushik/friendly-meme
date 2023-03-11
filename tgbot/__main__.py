@@ -7,9 +7,13 @@ import asyncio
 import nats
 from aiogram import Bot, Dispatcher
 from loguru import logger
+from sqlalchemy import URL
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import settings
 from handlers import client
+from tgbot.database.base import BaseModel
+from tgbot.database.engine import proceed_schemas, get_session_maker
 from tgbot.fsm.entry import NatsStorage
 
 
@@ -21,21 +25,33 @@ async def main() -> None:
     logger.add("../debug.log", format="{time} {level} {message}", level="DEBUG")
     logger.info("LAUNCHING BOT")
 
-    nc = await nats.connect()
-    js = nc.jetstream()
+    nats_conn = await nats.connect()
+    jetstream = nats_conn.jetstream()
 
-    kv_states = await js.key_value('fsm_states_aiogram')
-    kv_data = await js.key_value('fsm_data_aiogram')
+    kv_states = await jetstream.key_value('fsm_states_aiogram')
+    kv_data = await jetstream.key_value('fsm_data_aiogram')
+
+    database_url = URL.create(
+        drivername="postgresql+asyncpg", host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT, username=settings.POSTGRES_USERNAME,
+        password=settings.POSTGRES_PASSWORD, database=settings.POSTGRES_DATABASE,
+    )
 
     bot = Bot(token=settings.API_TOKEN, parse_mode="HTML")
-    disp = Dispatcher(storage=NatsStorage(nc, kv_states, kv_data))
+    disp = Dispatcher(storage=NatsStorage(nats_conn, kv_states, kv_data))
 
     disp.include_router(client.router)
     # disp.include_router(errors.router)
 
+    async_engine = create_async_engine(database_url)
+    session_maker = get_session_maker(async_engine)
+
     try:
         # await set_commands(bot)
-        await disp.start_polling(bot, allowed_updates=disp.resolve_used_update_types(), nc=nc, js=js)
+        await proceed_schemas(async_engine, BaseModel.metadata)
+        await disp.start_polling(bot, session_maker=session_maker, allowed_updates=disp.resolve_used_update_types(),
+                                 nats_conn=nats_conn,
+                                 jetstream=jetstream)
     finally:
         await disp.storage.close()
         await bot.session.close()
@@ -46,4 +62,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except (SystemExit, KeyboardInterrupt, ConnectionRefusedError):
         logger.warning("SHUTDOWN BOT")
-

@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  postgres:
+    container_name: postgres
+    image: "postgres:15.2-alpine"
+    ports:
+      - "5432:5432"
+    restart: "unless-stopped"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - "~/${VOLUMES_DIR}/pg-assets:/var/lib/postgresql/assets"
